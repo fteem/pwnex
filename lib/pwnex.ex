@@ -25,8 +25,7 @@ defmodule Pwnex do
     hash_head
     |> fetch_pwns
     |> handle_response
-    |> build_pwns
-    |> get_count(hash_tail)
+    |> find_pwns(hash_tail)
     |> return_result
   end
 
@@ -48,18 +47,17 @@ defmodule Pwnex do
   def handle_response({:ok, {_status, _headers, body}}), do: body
   def handle_response({:error, {reason, _meta}}), do: reason
 
-  def build_pwns(response) do
+  def find_pwns(response, hash_tail) do
     response
     |> to_string
     |> String.split()
-    |> Enum.map(fn line -> String.split(line, ":") end)
-    |> Enum.reduce(%{}, fn [hash, count], acc ->
-      Map.put(acc, hash, String.to_integer(count))
-    end)
+    |> Enum.find(&(String.starts_with?(&1, hash_tail)))
   end
 
-  def get_count(pwns, hash_tail), do: pwns[hash_tail]
+  def return_result(line) when is_binary(line) do
+    [_, count] = String.split(line, ":")
+    {:pwned, count}
+  end
 
-  def return_result(count) when is_integer(count), do: {:pwned, count}
   def return_result(_), do: {:ok, 0}
 end
